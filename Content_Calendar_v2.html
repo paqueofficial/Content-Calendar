@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141a1f; --panel:#1c242b; --panel2:#232d35; --line:#2f3b45;
+  --ink:#eef2f4; --ink2:#9fb0bc; --ink3:#66788a;
+  --green:#4fd18b; --amber:#f2a93b; --red:#ef5b5b; --blue:#5aa7ff; --violet:#9b8cff;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Barlow',system-ui,sans-serif;font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.01em;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 80px}
+
+/* header */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.titlewrap{flex:1 1 auto;min-width:200px}
+.titlewrap label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:3px;font-weight:600}
+#projTitle{width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);color:var(--ink);font-family:'Barlow Condensed';font-size:34px;font-weight:800;padding:2px 0;line-height:1}
+#projTitle::placeholder{color:var(--ink3);opacity:.55}
+#projTitle:focus{outline:none;border-bottom-color:var(--blue)}
+
+/* month nav */
+.navbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.navbar .mo{font-family:'Barlow Condensed';font-weight:800;font-size:26px;min-width:190px}
+.navbtn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:8px 13px;font:inherit;font-weight:700;cursor:pointer;line-height:1}
+.navbtn:hover{border-color:var(--ink3)}
+.navbar .today{margin-left:auto}
+
+/* calendar */
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
+.dow span{font-family:'Barlow Condensed';font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:.06em;color:var(--ink3);text-align:center}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cell{position:relative;aspect-ratio:1/1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 6px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s}
+.cell:hover{border-color:var(--ink3)}
+.cell.out{opacity:.38}
+.cell.today{border-color:var(--blue)}
+.cell .num{font-family:'Barlow Condensed';font-weight:800;font-size:15px;line-height:1;z-index:2;position:relative;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.cell.today .num{color:var(--blue)}
+.cell .thumb{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.cell .thumb:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.05) 45%,rgba(0,0,0,.25))}
+.cell .dots{margin-top:auto;display:flex;gap:3px;flex-wrap:wrap;z-index:2;position:relative}
+.cell .d{width:7px;height:7px;border-radius:50%}
+.cell .d.planned{background:var(--blue)} .cell .d.posted{background:var(--green)}
+.cell .cnt{position:absolute;top:4px;right:5px;z-index:2;font-family:'Barlow Condensed';font-weight:800;font-size:12px;background:rgba(20,26,31,.72);border:1px solid var(--line);border-radius:999px;padding:0 6px;line-height:17px}
+
+/* buttons */
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+button.btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:12px 16px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+button.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.btn.danger{color:var(--red);border-color:rgba(239,91,91,.4)}
+.sm{padding:7px 10px;font-size:14px}
+.warn{background:rgba(242,169,59,.1);border:1px solid rgba(242,169,59,.4);border-radius:8px;padding:12px 14px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+.warn b{color:var(--amber)}
+label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:4px;font-weight:600}
+input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px 12px;font:inherit;font-size:16px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+textarea{min-height:60px;resize:vertical}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%239fb0bc' stroke-width='2' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(10,13,16,.72);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:20px 12px;overflow-y:auto}
+.modal.open{display:flex}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);width:100%;max-width:520px;padding:18px;margin:auto}
+.sheet .shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sheet h2{font-size:24px;font-weight:800;text-transform:uppercase;color:var(--ink)}
+.closex{background:none;border:1px solid var(--line);color:var(--ink2);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+.closex:hover{color:var(--ink)}
+.entries{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.entry{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.entry .eth{width:52px;height:52px;border-radius:6px;background:var(--panel);background-size:cover;background-position:center;border:1px solid var(--line);flex:none}
+.entry .edesc{font-size:14.5px}
+.entry .emeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.tag{font-size:12px;font-weight:600;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+.tag.st.planned{color:var(--blue);border-color:var(--blue)} .tag.st.posted{color:var(--green);border-color:var(--green)}
+.tag.time{color:var(--ink);border-color:var(--ink3);font-variant-numeric:tabular-nums;font-weight:700}
+.entry .eacts{display:flex;flex-direction:column;gap:4px}
+.entry .eacts button{background:none;border:1px solid var(--line);color:var(--ink2);border-radius:6px;padding:5px 8px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.entry .eacts button[data-s]{color:var(--green);border-color:rgba(79,209,139,.35)}
+.entry .eacts button[data-s].un{color:var(--blue);border-color:rgba(90,167,255,.35)}
+.entry .eacts button[data-x].arm{color:var(--red);border-color:var(--red);font-weight:700}
+.entry .eacts button:hover{border-color:var(--ink3)}
+.formgrid{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.imgbox{display:flex;gap:10px;align-items:center}
+.imgprev{width:62px;height:62px;border-radius:8px;border:1px dashed var(--line);background:var(--panel2);background-size:cover;background-position:center;flex:none}
+.imgbtns{display:flex;flex-direction:column;gap:6px}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink);text-transform:none;letter-spacing:0;margin:0}
+.chk input{width:18px;height:18px;accent-color:var(--green);flex:none}
+.platgroup{display:flex;gap:7px;flex-wrap:wrap}
+.pchk{display:inline-flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;text-transform:none;letter-spacing:0;margin:0;color:var(--ink)}
+.pchk input{width:16px;height:16px;accent-color:var(--blue);margin:0;flex:none}
+.pchk:has(input:checked){border-color:var(--blue);color:var(--ink)}
+.empty{color:var(--ink3);font-size:14px;padding:4px 0 10px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:80;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+
+/* intro */
+#intro{max-width:720px;margin:0 auto;padding:36px 16px 80px}
+#intro h1{font-size:40px;font-weight:800;margin:0 0 4px;line-height:1}
+#intro .lede{color:var(--ink2);font-size:17px;margin:0 0 22px}
+.how{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.how h2{margin:0 0 12px;font-size:22px;font-weight:800;text-transform:uppercase;color:var(--ink2)}
+.how ol{margin:0;padding-left:20px}
+.how li{margin-bottom:10px;color:var(--ink)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0 2px;font-size:13.5px;color:var(--ink2)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:50%;display:block}
+.legal{margin-top:20px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:13.5px;color:var(--ink2)}
+.agree{display:flex;align-items:flex-start;gap:10px;margin-top:14px;cursor:pointer;font-size:15px;color:var(--ink)}
+.agree input{width:20px;height:20px;margin-top:1px;accent-color:var(--green);flex:none}
+.startrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn.ghostlink{border:1px solid var(--line);background:transparent;color:var(--ink2);padding:12px 16px;border-radius:8px;font:inherit;font-weight:600;text-decoration:none;display:inline-block}
+.btn.ghostlink:hover{color:var(--ink);border-color:var(--ink3)}
+.hidden{display:none!important}
+@media (max-width:560px){
+  #intro h1{font-size:32px}
+  .cell{border-radius:6px;padding:3px 4px}
+  .cell .num{font-size:13px}
+  .frow{grid-template-columns:1fr}
+  .navbar .mo{font-size:22px;min-width:150px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<div id="intro">
+  <h1>Content Calendar</h1>
+  <p class="lede">Plan your posts on a calendar — a line on what's going out each day, and the screenshot or thumbnail of the video right there with it.</p>
+
+  <div class="how">
+    <h2>How it works</h2>
+    <ol>
+      <li>Name your project. Move through the months with the arrows, or jump back to now with <b>Today</b>.</li>
+      <li><b>Tap any day</b> to add what you're posting — a short description, the <b>platforms</b> it's going to (tick as many as you like), a <b>time</b> if you know when it goes out, and best of all a <b>screenshot or thumbnail</b> of the clip itself. New entries start as Planned.</li>
+      <li>Add several posts to the same day and they <b>line up in time order</b>, earliest first, so a busy day stays clear. <b>Mark entries posted</b> as you go with the toggle beside each one. Days with a thumbnail show it right on the calendar, so the whole month reads as a visual plan at a glance.</li>
+      <li>Save the session as a <b>file (.json)</b> to keep or reopen anywhere — your images travel with it. The page also auto-saves to this browser, but that's not a real backup.</li>
+    </ol>
+    <div class="legend">
+      <span><i style="background:var(--blue)"></i>Planned</span>
+      <span><i style="background:var(--green)"></i>Posted</span>
+      <span><i style="background:var(--violet)"></i>Thumbnail attached shows on the day</span>
+    </div>
+
+    <div class="legal">
+      The code and design of this page are the copyright of PAQUE. You're welcome to use the tool for your own projects, but the underlying code may not be copied, reproduced, redistributed or repackaged.
+    </div>
+    <label class="agree"><input type="checkbox" id="agreeBox"><span>I understand and agree that the code on this page is copyrighted by PAQUE and may not be replicated.</span></label>
+    <div class="startrow">
+      <a class="btn ghostlink" id="paqueLink" href="https://www.paqueofficial.com/" target="_blank" rel="noopener">Made by PAQUE →</a>
+      <button class="btn primary hidden" id="startBtn" style="display:none">Open the calendar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="wrap hidden" id="app">
+  <header>
+    <div class="titlewrap">
+      <label for="projTitle">Project title</label>
+      <input id="projTitle" placeholder="Name your calendar" autocomplete="off">
+    </div>
+  </header>
+
+  <div class="navbar">
+    <button class="navbtn" id="prevBtn" aria-label="Previous month">‹</button>
+    <div class="mo" id="moLabel">—</div>
+    <button class="navbtn" id="nextBtn" aria-label="Next month">›</button>
+    <button class="navbtn today" id="todayBtn">Today</button>
+  </div>
+
+  <div class="dow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+  <div class="cal" id="cal"></div>
+
+  <div class="row">
+    <button class="btn primary" id="jsonBtn">Save session (.json)</button>
+    <button class="btn" id="loadBtn">Load session</button>
+    <input type="file" id="loadFile" accept=".json" hidden>
+    <button class="btn" id="printBtn">Print / PDF this month</button>
+    <button class="btn danger" id="resetBtn">Reset calendar</button>
+  </div>
+  <div class="warn"><b>On auto-save:</b> the page keeps your work — images included — in this browser only. Clear your history, switch device or browser, and it's gone. Save to JSON for a real backup you can keep and reopen anywhere.</div>
+</div>
+
+<!-- ============ DAY MODAL ============ -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="shead"><h2 id="dayTitle">Day</h2><button class="closex" id="closeBtn">Close</button></div>
+    <div class="entries" id="entries"></div>
+    <div class="empty hidden" id="noEntries">Nothing planned yet for this day.</div>
+    <div class="formgrid">
+      <div><label for="eDesc" id="formLbl">Describe the content</label><textarea id="eDesc" placeholder="What's going out? e.g. a short clip, photo or carousel — and what it's about"></textarea></div>
+      <div><label>Platforms</label>
+        <div class="platgroup" id="platGroup">
+          <label class="pchk"><input type="checkbox" value="Instagram"> Instagram</label>
+          <label class="pchk"><input type="checkbox" value="TikTok"> TikTok</label>
+          <label class="pchk"><input type="checkbox" value="YouTube"> YouTube</label>
+          <label class="pchk"><input type="checkbox" value="X"> X</label>
+          <label class="pchk"><input type="checkbox" value="Facebook"> Facebook</label>
+          <label class="pchk"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <div><label for="eTime">Time (optional)</label><input type="time" id="eTime"></div>
+      <div><label>Screenshot / thumbnail (optional)</label>
+        <div class="imgbox">
+          <div class="imgprev" id="imgPrev"></div>
+          <div class="imgbtns">
+            <button class="btn sm" id="pickImg">Add image</button>
+            <button class="btn sm" id="rmImg" style="display:none">Remove</button>
+            <input type="file" id="imgFile" accept="image/*" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:2px">
+        <button class="btn primary" id="saveEntry">Add to day</button>
+        <button class="btn" id="cancelEdit" style="display:none">Cancel edit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const KEY='paque_content_calendar_v1';
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MAXDIM=760, JPEGQ=0.72;
+
+  let state={project:'',entries:[]}; // entries: {id,date,desc,platform,posted,img}
+  let view={y:0,m:0};
+  let openDate=null, editingId=null, pendingImg='';
+  let seed=0; const uid=()=>Date.now().toString(36)+(seed++).toString(36)+Math.random().toString(36).slice(2,5);
+
+  // intro gate
+  $('agreeBox').addEventListener('change',e=>{const b=$('startBtn');b.style.display=e.target.checked?'inline-block':'none';b.classList.toggle('hidden',!e.target.checked);});
+  $('startBtn').addEventListener('click',()=>{
+    $('intro').classList.add('hidden'); $('app').classList.remove('hidden');
+    load(); const n=new Date(); if(!view.y){view={y:n.getFullYear(),m:n.getMonth()};}
+    renderCal(); if(!$('projTitle').value)$('projTitle').focus();
+  });
+
+  // persistence
+  function save(){
+    state.project=$('projTitle').value.trim();
+    try{localStorage.setItem(KEY,JSON.stringify(state));}
+    catch(e){toast('Browser storage is full — export to JSON to keep everything safe');}
+  }
+  function normEntries(arr){return (arr||[]).map(e=>{if(!Array.isArray(e.platforms)){e.platforms=e.platform?[e.platform]:[];}delete e.platform;if(typeof e.time!=='string')e.time='';return e;});}
+  function byTime(arr){return arr.slice().sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));}
+  function load(){
+    try{const d=JSON.parse(localStorage.getItem(KEY));
+      if(d&&Array.isArray(d.entries)){state={project:d.project||'',entries:normEntries(d.entries)};$('projTitle').value=state.project;}
+    }catch(e){}
+  }
+  $('projTitle').addEventListener('input',save);
+
+  // ---- calendar ----
+  function iso(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  function entriesFor(dateStr){return state.entries.filter(e=>e.date===dateStr);}
+  function renderCal(){
+    $('moLabel').textContent=MONTHS[view.m]+' '+view.y;
+    const cal=$('cal'); cal.innerHTML='';
+    const first=new Date(view.y,view.m,1);
+    const offset=(first.getDay()+6)%7; // Monday-based
+    const start=new Date(view.y,view.m,1-offset);
+    const today=new Date(); const todayStr=iso(today.getFullYear(),today.getMonth(),today.getDate());
+    for(let k=0;k<42;k++){
+      const dt=new Date(start); dt.setDate(start.getDate()+k);
+      const y=dt.getFullYear(),m=dt.getMonth(),d=dt.getDate();
+      const ds=iso(y,m,d);
+      const cell=document.createElement('div'); cell.className='cell'+(m!==view.m?' out':'')+(ds===todayStr?' today':'');
+      const list=byTime(entriesFor(ds));
+      const withImg=list.find(e=>e.img);
+      let html=`<span class="num">${d}</span>`;
+      if(withImg) html+=`<div class="thumb" style="background-image:url('${withImg.img}')"></div>`;
+      if(list.length>1) html+=`<span class="cnt">${list.length}</span>`;
+      if(list.length){const dots=list.slice(0,5).map(e=>`<span class="d ${e.posted?'posted':'planned'}"></span>`).join('');html+=`<div class="dots">${dots}</div>`;}
+      cell.innerHTML=html;
+      cell.onclick=()=>openDay(ds);
+      cal.appendChild(cell);
+    }
+  }
+  $('prevBtn').onclick=()=>{view.m--;if(view.m<0){view.m=11;view.y--;}renderCal();};
+  $('nextBtn').onclick=()=>{view.m++;if(view.m>11){view.m=0;view.y++;}renderCal();};
+  $('todayBtn').onclick=()=>{const n=new Date();view={y:n.getFullYear(),m:n.getMonth()};renderCal();};
+
+  // ---- day modal ----
+  function prettyDate(ds){const [y,m,d]=ds.split('-').map(Number);const dt=new Date(y,m-1,d);return dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+  function openDay(ds){openDate=ds;editingId=null;pendingImg='';$('dayTitle').textContent=prettyDate(ds);resetForm();renderEntries();$('modal').classList.add('open');}
+  function closeDay(){$('modal').classList.remove('open');openDate=null;}
+  $('closeBtn').onclick=closeDay;
+  $('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeDay();});
+
+  function renderEntries(){
+    const C=$('entries'); C.innerHTML='';
+    const list=byTime(entriesFor(openDate));
+    $('noEntries').classList.toggle('hidden',!!list.length);
+    list.forEach(e=>{
+      const row=document.createElement('div'); row.className='entry';
+      const timeTag=e.time?`<span class="tag time">${esc(e.time)}</span>`:'';
+      const platTags=(e.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('');
+      const meta=timeTag+platTags+`<span class="tag st ${e.posted?'posted':'planned'}">${e.posted?'Posted':'Planned'}</span>`;
+      row.innerHTML=`<div class="eth" style="${e.img?`background-image:url('${e.img}')`:''}"></div>
+        <div><div class="edesc">${esc(e.desc)||'<span style="color:var(--ink3)">(no description)</span>'}</div><div class="emeta">${meta}</div></div>
+        <div class="eacts"><button data-s class="${e.posted?'un':''}">${e.posted?'Mark planned':'Mark posted'}</button><button data-e>Edit</button><button data-x>✕</button></div>`;
+      row.querySelector('[data-s]').onclick=()=>{e.posted=!e.posted;save();renderEntries();renderCal();};
+      row.querySelector('[data-e]').onclick=()=>startEdit(e.id);
+      const xb=row.querySelector('[data-x]');let armed=false,armT;
+      xb.onclick=()=>{
+        if(!armed){armed=true;xb.textContent='Delete?';xb.classList.add('arm');clearTimeout(armT);armT=setTimeout(()=>{armed=false;xb.textContent='✕';xb.classList.remove('arm');},2500);return;}
+        clearTimeout(armT);state.entries=state.entries.filter(x=>x.id!==e.id);save();renderEntries();renderCal();toast('Entry removed');
+      };
+      C.appendChild(row);
+    });
+  }
+  function resetForm(){
+    editingId=null;pendingImg='';
+    $('eDesc').value='';$('eTime').value='';
+    document.querySelectorAll('#platGroup input').forEach(c=>c.checked=false);
+    $('imgPrev').style.backgroundImage='';$('rmImg').style.display='none';
+    $('formLbl').textContent='Describe the content';$('saveEntry').textContent='Add to day';$('cancelEdit').style.display='none';
+  }
+  function startEdit(id){
+    const e=state.entries.find(x=>x.id===id); if(!e)return;
+    editingId=id;pendingImg=e.img||'';
+    $('eDesc').value=e.desc||'';$('eTime').value=e.time||'';
+    const set=new Set(e.platforms||[]);
+    document.querySelectorAll('#platGroup input').forEach(c=>c.checked=set.has(c.value));
+    $('imgPrev').style.backgroundImage=e.img?`url('${e.img}')`:'';$('rmImg').style.display=e.img?'inline-block':'none';
+    $('formLbl').textContent='Edit content';$('saveEntry').textContent='Update entry';$('cancelEdit').style.display='inline-block';
+    $('sheet')?.scrollIntoView?.();
+  }
+  $('cancelEdit').onclick=resetForm;
+
+  $('saveEntry').onclick=()=>{
+    const desc=$('eDesc').value.trim();
+    if(!desc&&!pendingImg){toast('Add a description or an image');return;}
+    const platforms=[...document.querySelectorAll('#platGroup input:checked')].map(c=>c.value);
+    let posted=false;
+    if(editingId){const ex=state.entries.find(x=>x.id===editingId);posted=ex?!!ex.posted:false;}
+    const rec={id:editingId||uid(),date:openDate,desc,platforms,posted,time:$('eTime').value,img:pendingImg};
+    if(editingId){const i=state.entries.findIndex(x=>x.id===editingId);if(i>-1)state.entries[i]=rec;else state.entries.push(rec);toast('Updated');}
+    else{state.entries.push(rec);toast('Added');}
+    save();resetForm();renderEntries();renderCal();
+  };
+
+  // ---- image handling ----
+  $('pickImg').onclick=()=>$('imgFile').click();
+  $('rmImg').onclick=()=>{pendingImg='';$('imgPrev').style.backgroundImage='';$('rmImg').style.display='none';};
+  $('imgFile').onchange=e=>{
+    const f=e.target.files[0]; if(!f)return;
+    if(!/^image\//.test(f.type)){toast('That\'s not an image');return;}
+    const rd=new FileReader();
+    rd.onload=()=>{const img=new Image();img.onload=()=>{
+      let {width:w,height:h}=img; const scale=Math.min(1,MAXDIM/Math.max(w,h));
+      w=Math.round(w*scale);h=Math.round(h*scale);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      try{pendingImg=cv.toDataURL('image/jpeg',JPEGQ);}catch(err){toast('Could not read that image');return;}
+      $('imgPrev').style.backgroundImage=`url('${pendingImg}')`;$('rmImg').style.display='inline-block';
+    };img.onerror=()=>toast('Could not read that image');img.src=rd.result;};
+    rd.readAsDataURL(f); e.target.value='';
+  };
+
+  // ---- save / load / print / reset ----
+  $('jsonBtn').onclick=()=>{
+    if(!state.entries.length){toast('Nothing to save yet');return;}
+    save();
+    dl(new Blob([JSON.stringify(state)],{type:'application/json'}),slug($('projTitle').value.trim()||'content_calendar')+'_calendar_'+stamp()+'.json');
+    toast('Session saved');
+  };
+  $('loadBtn').onclick=()=>$('loadFile').click();
+  $('loadFile').onchange=e=>{
+    const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+    rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!Array.isArray(d.entries))throw 0;
+      state={project:d.project||'',entries:normEntries(d.entries)};$('projTitle').value=state.project;save();renderCal();toast('Session loaded');
+    }catch{toast("That file isn't a saved session");}e.target.value='';};
+    rd.readAsText(f);
+  };
+  $('printBtn').onclick=()=>{
+    const inMonth=state.entries.filter(e=>{const [y,m]=e.date.split('-').map(Number);return y===view.y&&m-1===view.m;});
+    if(!inMonth.length){toast('Nothing planned this month to print');return;}
+    inMonth.sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99:99').localeCompare(b.time||'99:99'));
+    const proj=$('projTitle').value.trim()||'Content calendar';
+    let h=`<html><head><meta charset="utf-8"><title>${esc(proj)}</title><style>body{font-family:Arial;color:#111;margin:24px}h1{font-size:18pt;margin:0}h2{font-size:12pt;margin:14pt 0 2pt;border-bottom:1px solid #ccc;padding-bottom:2pt}.e{display:flex;gap:10px;margin:7pt 0;page-break-inside:avoid}.e img{width:74px;height:74px;object-fit:cover;border:1px solid #999;border-radius:4px}.s{color:#666;font-size:9pt}.p{font-size:8pt;color:#333;border:1px solid #bbb;border-radius:4px;padding:1px 5px;display:inline-block;margin-right:5px}</style></head><body><h1>${esc(proj)} — ${MONTHS[view.m]} ${view.y}</h1>`;
+    let cur='';
+    inMonth.forEach(e=>{if(e.date!==cur){cur=e.date;h+=`<h2>${prettyDate(e.date)}</h2>`;}
+      h+=`<div class="e">${e.img?`<img src="${e.img}">`:''}<div><div>${e.time?`<b>${esc(e.time)}</b> — `:''}${esc(e.desc)||'—'}</div><div>${(e.platforms||[]).map(p=>`<span class="p">${esc(p)}</span>`).join('')}<span class="s">${e.posted?'Posted':'Planned'}</span></div></div></div>`;});
+    h+=`</body></html>`;
+    const w=window.open('','_blank');if(!w){toast('Allow pop-ups to print');return;}
+    w.document.write(h);w.document.close();w.focus();setTimeout(()=>w.print(),400);
+  };
+  let rstArmed=false,rstT;
+  $('resetBtn').onclick=()=>{
+    if(!state.entries.length&&!$('projTitle').value.trim()){toast('Nothing to reset');return;}
+    if(!rstArmed){rstArmed=true;$('resetBtn').textContent='Tap again to wipe all';clearTimeout(rstT);rstT=setTimeout(()=>{rstArmed=false;$('resetBtn').textContent='Reset calendar';},3000);toast('Save to JSON first if you want to keep this');return;}
+    clearTimeout(rstT);rstArmed=false;$('resetBtn').textContent='Reset calendar';
+    state={project:'',entries:[]};$('projTitle').value='';
+    try{localStorage.removeItem(KEY);}catch(e){}
+    renderCal();toast('Calendar reset');
+  };
+
+  // helpers
+  function dl(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+  function stamp(){return new Date().toISOString().slice(0,10);}
+  function slug(s){return String(s||'project').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'')||'project';}
+  function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2100);}
+})();
+</script>
+</body>
+</html>
